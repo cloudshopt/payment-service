@@ -1,0 +1,207 @@
+openapi: 3.0.3
+info:
+  title: CloudShopt Payment Service API
+  version: 1.0.0
+tags:
+  - name: Health
+  - name: Diagnostics
+  - name: Checkout
+  - name: Webhooks
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOkBool"
+
+  /info:
+    get:
+      tags: [Diagnostics]
+      summary: Service info (sha, time)
+      responses:
+        "200":
+          description: Info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfoResponse"
+
+  /database:
+    get:
+      tags: [Diagnostics]
+      summary: Database connectivity check (optional)
+      responses:
+        "200":
+          description: DB OK (or not used)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseOkResponse"
+        "500":
+          description: DB connection failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseFailResponse"
+
+  /checkout-session:
+    post:
+      tags: [Checkout]
+      summary: Create Stripe Checkout Session (JWT)
+      description: Returns Stripe hosted checkout URL. Amount is derived from order total (cents).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutSessionRequest"
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCheckoutSessionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      summary: Stripe webhook receiver
+      description: Stripe calls this endpoint. Signature is verified using STRIPE_WEBHOOK_SECRET.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookReceived"
+        "400":
+          description: Invalid signature / bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+
+  schemas:
+    ErrorMessage:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    StatusOkBool:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean, example: true }
+
+    InfoResponse:
+      type: object
+      required: [ok, service, sha, time]
+      properties:
+        ok: { type: boolean, example: true }
+        service: { type: string, example: payment-service }
+        sha: { type: string, nullable: true, example: 0.0.1 }
+        time: { type: string, format: date-time, example: "2026-01-29T10:15:30.123Z" }
+
+    DatabaseOkResponse:
+      type: object
+      required: [ok, db, time]
+      properties:
+        ok: { type: boolean, example: true }
+        db:
+          type: object
+          required: [connection, database, ping_ms]
+          properties:
+            connection: { type: string, example: mysql }
+            database: { type: string, example: cloudshopt_payments_dev }
+            ping_ms: { type: number, format: float, example: 1.25 }
+        time: { type: string, format: date-time, example: "2026-01-29T10:15:30.123Z" }
+
+    DatabaseFailResponse:
+      type: object
+      required: [ok, error, message]
+      properties:
+        ok: { type: boolean, example: false }
+        error: { type: string, example: DB connection failed }
+        message: { type: string, nullable: true, example: "SQLSTATE[HY000] ..." }
+
+    CreateCheckoutSessionRequest:
+      type: object
+      required: [order_id]
+      properties:
+        order_id: { type: integer, minimum: 1, example: 10 }
+
+    CreateCheckoutSessionResponse:
+      type: object
+      required: [url, session_id]
+      properties:
+        url: { type: string, example: https://checkout.stripe.com/c/pay/cs_test_... }
+        session_id: { type: string, example: cs_test_a11lqwy13iFvK69o... }
+
+    WebhookReceived:
+      type: object
+      required: [received]
+      properties:
+        received: { type: boolean, example: true }
