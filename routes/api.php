@@ -5,6 +5,21 @@ use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/openapi.yaml', function () {
+    $path = base_path('docs/openapi.yaml');
+
+    abort_unless(file_exists($path), 404, 'openapi.yaml not found');
+
+    return response()->file($path, [
+        'Content-Type' => 'application/yaml; charset=utf-8',
+        'Cache-Control' => 'no-store',
+    ]);
+});
+
+Route::get('/docs', function () {
+    return response()->view('swagger');
+});
+
 Route::get('/info', function () {
     return response()->json([
         'ok11' => true,
