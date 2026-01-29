@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -39,27 +41,5 @@ Route::get('/database', function () {
 
 
 
-
-Route::get('/payments', function () {
-    return response()->json([
-        [
-            'id' => 1,
-            'name' => 'Payment 1',
-            'total_value' => 49.90,
-            'currency' => 'EUR',
-        ],
-        [
-            'id' => 2,
-            'name' => 'Payment 2',
-            'total_cost' => 19.90,
-            'currency' => 'EUR',
-        ],
-        [
-            'id' => 3,
-            'name' => 'Payment 3',
-            'total_cost' => 12.90,
-            'currency' => 'EUR',
-        ],
-    ]);
-});
-
+Route::middleware('jwt')->post('/checkout-session', [CheckoutController::class, 'create']);
+Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
