@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+
+    'orders' => [
+        'base_url' => env('ORDER_SERVICE_BASE_URL'),
+        'service_key' => env('ORDER_SERVICE_KEY'),
+    ],
+
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET_KEY'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'currency' => env('STRIPE_CURRENCY', 'eur'),
+    ],
+
+    'frontend' => [
+        'base_url' => env('FRONTEND_BASE_URL'),
+    ],
+
 ];
